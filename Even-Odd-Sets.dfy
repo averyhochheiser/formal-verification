@@ -52,15 +52,26 @@ lemma OddModulo(n: int)
 {}
 lemma ModuloOdd(n: int)
   ensures n % 2 != 0 ==> isOdd(n)
-{ // TODO: complete his proof
+{ 
+  if n % 2 != 0 {
+    var m := (n - 1) / 2;
+    assert n == 2 * m + 1;
+  }
 }
 lemma checkOddCorrect(n: int)
   ensures checkOdd(n) <==> isOdd(n)
-{ // TODO: complete his proof
+{ 
+  OddModulo(n);
+  ModuloOdd(n);
 }
 lemma OddTimesOdd(n1: int, n2: int)
   ensures isOdd(n1) && isOdd(n2) ==> isOdd(n1 * n2)
-{ // TODO
+{ 
+  if isOdd(n1) && isOdd(n2) {
+    var a |: n1 == 2 * a + 1;
+    var b |: n2 == 2 * b + 1;
+    assert n1 * n2 == 2 * (2 * a * b + a + b) + 1;
+  }
 }
 
 /*** Even & Odd ***/
@@ -72,7 +83,12 @@ lemma NotEvenANDOdd(n: int)
 
 lemma EvenOrOdd(n: int)
   ensures isEven(n) || isOdd(n)
-{ // TODO: complete this proof
+{ 
+  if n % 2 == 0 {
+    ModuloEven(n);
+  } else {
+    ModuloOdd(n);
+  }
 }
 
 function invertParity(n: int): (m: int) {
@@ -83,6 +99,13 @@ lemma InvertParityCorrect(n: int)
   ensures isEven(n) ==> isOdd(invertParity(n))
   ensures isOdd(n) ==> isEven(invertParity(n))
 { // TODO: complete this proof
+  if isEven(n) {
+    var m |: n == 2 * m;
+    assert invertParity(n) == 2 * m + 1;
+  } else {
+    var m |: n == 2 * m + 1;
+    assert invertParity(n) == 2 * (m + 1);
+  }
 }
 
 
@@ -90,33 +113,74 @@ lemma InvertParityCorrect(n: int)
 
 /* A set is represented as a sequence with no duplicates */
 predicate isSet(s: seq<int>) {
- // TODO: complete this predicate
+ forall i, j :: 0 <= i < j < |s| ==> s[i] != s[j]
 }
 
 // hint don't use return statements. Set b instead.
 method checkSet(s: seq<int>) returns (b: bool)
   ensures b <==> isSet(s)
-{ // TODO: complete this method
+{ 
+  b := true;
+  var i := 0;
+  
+  while i < |s| {
+    var j := i + 1;
+    while j < |s| {
+      if s[i] == s[j] {
+        b := false;
+      }
+      j := j + 1;
+    }
+    i := i + 1;
+  }
 }
 
 /* An even set is a set where all elements are even */
 ghost predicate isEvenSet(s: seq<int>) {
- // TODO: complete this predicate
+ isSet(s) && forall i :: 0 <= i < |s| ==> isEven(s[i])
 }
 
 method checkEvenSet(s: seq<int>) returns (b: bool)
   ensures b <==> isEvenSet(s)
-{ // TODO: complete this method
+{
+  var isSet := checkSet(s);
+  if !isSet {
+    b := false;
+  } else {
+    b := true;
+    var i := 0;
+
+    while i < |s| {
+      if s[i] % 2 != 0 {
+        b := false;
+      }
+      i := i + 1;
+    }
+  }
 }
 
 /* An odd set is a set where all elements are odd */
 ghost predicate isOddSet(s: seq<int>) {
-  // TODO: complete this predicate
+  isSet(s) && forall i :: 0 <= i < |s| ==> isOdd(s[i])
 }
 
 method checkOddSet(s: seq<int>) returns (b: bool)
   ensures b <==> isOddSet(s)
-{ // TODO: complete this method
+{ 
+  var isSet := checkSet(s);
+  if !isSet {
+    b := false;
+  } else {
+    b := true;
+    var i := 0;
+
+    while i < |s| {
+      if s[i] % 2 == 0 {
+        b := false;
+      }
+      i := i + 1;
+    }
+  }
 }
 
 /*** Set Operations ***/
