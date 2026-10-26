@@ -98,7 +98,7 @@ function invertParity(n: int): (m: int) {
 lemma InvertParityCorrect(n: int)
   ensures isEven(n) ==> isOdd(invertParity(n))
   ensures isOdd(n) ==> isEven(invertParity(n))
-{ // TODO: complete this proof
+{ 
   if isEven(n) {
     var m |: n == 2 * m;
     assert invertParity(n) == 2 * m + 1;
