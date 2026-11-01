@@ -1,7 +1,7 @@
 
 /*** Even ***/
 
- ghost predicate isEven(n: int) {
+ghost predicate isEven(n: int) {
   exists m: int :: n == 2 * m
 }
 function checkEven(n: int) : (b: bool) {
@@ -191,51 +191,192 @@ method checkOddSet(s: seq<int>) returns (b: bool)
 
 /* Adds n to a set s, making sure it remains a set */
 method addToSet(s: seq<int>, n: int) returns (b: seq<int>)
-// TODO: Specify the behavior of this method so that your specification characterizes the allowed outputs,
-  // Marks will be awarded for specifying as much as possible all relevant properties of the output.
-  // Hint: You don't need to reimplement addToSet as a function to use in your specification.
-{ // TODO: Implement the method
+  ensures isSet(s)
+  ensures isSet(b)
+  ensures n in b
+  ensures forall x :: x in s ==> x in b 
+  ensures forall x :: x in b ==> x in s || x == n
+  ensures n in s ==> |b| == |s|
+  ensures n !in s ==> |b| == |s| +1
+{
+  if n in s{
+    b := s;
+  } else{
+    b := s + [n];
+  }
 }
 
 /* Unions two sets s1 and s2, returning a new set t */
 method union(s1: seq<int>, s2: seq<int>) returns (t: seq<int>)
-// TODO: Specify the behavior of this method so that your specification characterizes the allowed outputs,
-// and as many relevant properties of the result as you can.
-{ // TODO: Implement the method
+  requires isSet(s1 && s2)
+  ensures isSet(t)
+  ensures forall x :: x in s1 ==> x in t
+  ensures forall x :: x in s2 ==> x in t
+  ensures forall x :: x in t ==> x in s1 || x in s2
+  ensures |t| >= |s1| //atleast s1 size
+  ensures |t| <= |s1| + |s2| // no bigger than combination
+{
+  t := s1; 
+  var i := 0;
+  while i < |s2|
+  // facts must be true for while loop
+    invariant 0 <= i <= |s2|
+    invariant isSet(t)
+    invariant forall x :: x in s1 ==> x in t
+    invariant forall x :: x in s2[..i] ==> x in t
+    invariant forall x :: x in t ==> x in s1 || x in s2[..i]
+    invariant |s1| <= |t| <= |s1| +i 
+    {
+      assert s2[..i+1] == s2[..i] + [s2[i]]; // extend the prefix
+      t := addToSet(t, s2[i]);
+      i := i+1;
+    }
+    assert s2[..|s2|] == s2;  // prefix now the sequence 
+
 }
 
 /* Intersects two sets s1 and s2, returning a new set t */
 method intersection(s1: seq<int>, s2: seq<int>) returns (t: seq<int>)
-// TODO: Specify the behavior of this method so that your specification characterizes the allowed outputs,
-// and as many relevant properties of the result as you can.
-{ // TODO: Implement the method
+  requires isSet(s1 && s2)
+  ensures isSet(t)
+  ensures forall x :: x in s1 && x in s2 ==> x in t 
+  ensures forall x :: x in t ==> x in s1 && x in s2
+  ensures |t| <= |s1| //no bigger than s1, intersection smaller
+{ 
+  t := []; 
+  var i := 0;
+  while i < |s1|
+  // facts must be true for while loop
+    invariant 0 <= i <= |s1|
+    invariant isSet(t)
+    invariant forall x :: x in s1[..i] && x in s2==> x in t
+    invariant forall x :: x in t ==> x in s1[..i] && x in s2
+    invariant |t| <= i 
+    {
+      assert s1[..i+1] == s1[..i] + [s1[i]]; // extend the prefix
+      if s1[i] in s2{
+        t:= addToSet(t,s1[i]);
+      }
+      i := i+1;
+    }
+    assert s1[..|s1|] == s1;  // prefix now the sequence 
 }
 
 /* Difference of two sets s1 and s2, returning a new set t = s1 - s2 */
 method difference(s1: seq<int>, s2: seq<int>) returns (t: seq<int>)
-// TODO: Specify the behavior of this method so that your specification characterizes the allowed outputs,
-// and as many relevant properties of the result as you can.
-{ // TODO: Implement the method
+  requires isSet(s1)
+  requires isSet(s2)
+  ensures isSet(t)
+  ensures forall x :: x in t ==> x in s1 && x !in s2
+  ensures forall x :: x in s1 && x !in s2 ==> x in t
+  ensures |t| <= |s1|
+{
+  t := []; 
+  var i := 0;
+  while i < |s1|
+  // facts must be true for while loop
+    invariant 0 <= i <= |s1|
+    invariant isSet(t)
+    invariant forall x :: x in s1[..i] && x !in s2==> x in t
+    invariant forall x :: x in t ==> x in s1[..i] && x !in s2
+    invariant |t| <= i 
+    {
+      assert s1[..i+1] == s1[..i] + [s1[i]]; // extend the prefix
+      if s1[i] !in s2{
+        t:= addToSet(t,s1[i]);
+      }
+      i := i+1;
+    }
+    assert s1[..|s1|] == s1;  // prefix now the sequence 
 }
 
 /* Multiplies each element of a set s by n, returning a new set t */
 method setScale(s: seq<int>, n: int) returns (t: seq<int>)
-// TODO: Specify the behavior of this method so that your specification characterizes the allowed outputs,
-// and as many relevant properties of the result as you can.
-{ // TODO: Implement the method
+  requires isSet(s)
+  ensures isSet(t)
+  ensures forall x :: x in s ==> x * n in t // every element
+  ensures forall y :: y in t ==> exists j :: 0 <= j < |s| && y == s[j] * n // no more elemnt
+  ensures |t| <= |s|
+  ensures n != 0 ==> |t| == |s|
+  ensures n ==0 && |s| > 0 ==> t == [0]
+{ 
+  t := []; 
+  var i := 0;
+  while i < |s|
+  // facts must be true for while loop
+    invariant 0 <= i <= |s|
+    invariant isSet(t)
+    invariant forall x :: x in s[..i] ==> x*n in t
+    invariant forall x :: x in t ==>exists j :: 0 <= j < |s| && y == s[j] * n 
+    invariant |t| <= i 
+    invariant n != 0 ==> |t| == i
+    invariant n ==0 && i > 0 ==> t == [0]
+    {
+      if  n != 0 && s[i] * n in t{
+        var j :| 0<= j < i && s[i] * n == s[j] * n;
+        assert false; //cant get to point si equal sj before this, goes against isSet(s)
+      }
+      t:= addToSet(t,s[i]*n);
+      i := i+1;
+    }
+    assert s[..|s|] == s;  
 }
 
 /* Computes the product set of two sets s1 and s2, returning a new set t = { n * m | n in s1, m in s2 }  */
 method setProduct(s1: seq<int>, s2: seq<int>) returns (t: seq<int>)
-// TODO: Specify the behavior of this method so that your specification characterizes the allowed outputs,
-// and as many relevant properties of the result as you can.
-{ // TODO: Implement the method
+  requires isSet(s1)
+  requires isSet(s2)
+  ensures isSet(t)
+  ensures forall z :: z in t ==> exists i,j :: 0 <= i < |s1| && 0 <= j < |s2| && z == s1[i] * s2[j]
+  ensures forall x, y :: x in s1 && y in s2 ==> x*y in t
+  ensures |t| <= |s1| * |s2|
+  ensures |s1| ==0 || |s2| == 0 ==> t == []
+{ 
+  t := []; 
+  var i := 0;
+  while i < |s1|
+  // facts must be true for while loop
+    invariant 0 <= i <= |s|
+    invariant isSet(t)
+    invariant forall  z :: z in t ==> exists l,j :: 0 <= l < |s1| && 0 <= j < |s2| && z == s1[l] * s2[j]
+    invariant forall x, y :: x in s1 && y in s2 ==> x*y in t
+    invariant |t| <= i * |s2|
+    {
+      assert s1[..i+1] == s1[..i] + [s1[i]]; // extend the prefix
+      var sacled := setScale(s2, s1[i]);
+      t:= union(t,sacled);
+      i := i+1;
+    }
+    assert s1[..|s1|] == s1;
 }
 
 /* Converts an even set to an odd set by inverting the parity of each element  
    Hint: Use the invertParity function */
 method invertParitySet(s: seq<int>) returns (t:seq<int>)
-// TODO: Specify the behavior of this method so that your specification characterizes the allowed outputs,
-// and as many relevant properties of the result as you can.
-{ // TODO: Implement the method
+  requires isEvenSet(s)
+  ensures isOddSet(t)
+  ensures forall x :: x in s ==> invertParity(x) in t 
+  ensures forall y :: y in t ==> exists j :: 0 <= j < |s| && y == invertParity(s[j]) 
+  ensures |t| == |s|
+{
+  t := []; 
+  var i := 0;
+  while i < |s|
+  // facts must be true for while loop
+    invariant 0 <= i <= |s|
+    invariant isSet(t)
+    invariant forall  y :: y in t ==> isOdd(y)
+    invariant forall x :: x in s[..i] ==>invertParity(x) in t
+    invariant forall y :: y in t ==> exists j :: 0 <= j < |s| && y == invertParity(s[j]) 
+    invariant |t| == i 
+    {
+      InvertParityCorrect(s[i]);
+      if invertParity(s[i]) in t{
+        var j :| 0<= j < i && invertParity(s[i]) == invertParity(s[j]);
+        assert false; //cant get to point invert(si) equal invertp(sj) before this, goes against isSet(s)
+      }
+      t:= addToSet(t, invertParity(s[i]));
+      i := i+1;
+    }
+    assert s[..|s|] == s;  // prefix now the sequence 
 }
