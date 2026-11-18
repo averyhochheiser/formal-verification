@@ -1,4 +1,3 @@
-
 /*** Even ***/
 
  ghost predicate isEven(n: int) {
@@ -125,8 +124,42 @@ predicate isSet(s: seq<int>) {
 
 // hint don't use return statements. Set b instead.
 method checkSet(s: seq<int>) returns (b: bool)
-  ensures b <==> isSet(s) //TODO
-{ // TODO: fill in your code here and prove method correct
+  ensures b <==> isSet(s) 
+{ 
+  b := true;
+  var i := 0;
+  
+  while i < |s| 
+    invariant 0 <= i <= |s|
+    invariant b <==> forall p, q :: 0 <= p < i && p < q < |s| ==> s[p] != s[q]
+    {
+    var j := i + 1;
+    while j < |s| 
+      invariant i + 1 <= j <= |s|
+      invariant b <==> ((forall p, q :: 0 <= p < i && p < q < |s| ==> s[p] != s[q]) 
+        && (forall q :: i < q < j ==> s[i] != s[q]))
+      {
+      if s[i] == s[j] {
+        b := false;
+      }
+      j := j + 1;
+    }
+    i := i + 1;
+  }
+
+  assert b <==> isSet(s) by {
+    if b {
+      forall p, q | 0 <= p < |s| && 0 <= q < |s| && s[p] == s[q] ensures p == q
+      {
+        if p < q { assert s[p] != s[q]; }
+        if q < p { assert s[q] != s[p]; }
+      }
+    }
+    if !b {
+      var p, q :| 0 <= p < q < |s| && s[p] == s[q];
+      assert !isSet(s);
+    }
+  }
 }
 
 /* An even set is a set where all elements are even */
@@ -136,7 +169,36 @@ ghost predicate isEvenSet(s: seq<int>) {
 
 method checkEvenSet(s: seq<int>) returns (b: bool)
   ensures b <==> isEvenSet(s)
-{ // TODO: fill in your code here and prove method correct
+{ 
+  var isS := checkSet(s);
+  if !isS {
+    b := false;
+  } else {
+    b := true;
+    var i := 0;
+
+    while i < |s| 
+      invariant 0 <= i <= |s|
+      invariant b <==> forall k :: 0 <= k < i ==> s[k] % 2 == 0
+    {
+      if s[i] % 2 != 0 {
+        b := false;
+      }
+      i := i + 1;
+    }
+
+    if b {
+      forall x | x in s ensures isEven(x) {
+        var k :| 0 <= k < |s| && s[k] == x;
+        ModuloEven(x);
+      }
+    } else {
+      var k :| 0 <= k < |s| && s[k] % 2 != 0;
+      EvenModulo(s[k]);
+      assert s[k] in s;
+      assert !isEven(s[k]);
+    }
+  }
 }
 
 /* An odd set is a set where all elements are odd */
@@ -146,7 +208,36 @@ ghost predicate isOddSet(s: seq<int>) {
 
 method checkOddSet(s: seq<int>) returns (b: bool)
   ensures b <==> isOddSet(s)
-{ // TODO: fill in your code here and prove method correct
+{ 
+  var isS := checkSet(s);
+  if !isS {
+    b := false;
+  } else {
+    b := true;
+    var i := 0;
+
+    while i < |s| 
+      invariant 0 <= i <= |s|
+      invariant b <==> forall k :: 0 <= k < i ==> s[k] % 2 != 0
+    {
+      if s[i] % 2 == 0 {
+        b := false;
+      }
+      i := i + 1;
+    }
+
+    if b {
+      forall x | x in s ensures isOdd(x) {
+        var k :| 0 <= k < |s| && s[k] == x;
+        ModuloOdd(x);
+      }
+    } else {
+      var k :| 0 <= k < |s| && s[k] % 2 == 0;
+      OddModulo(s[k]);
+      assert s[k] in s;
+      assert !isOdd(s[k]);
+    }
+  }
 }
 
 /*** Set Operations ***/
@@ -162,7 +253,22 @@ method addToSet(s: seq<int>, n: int) returns (b: seq<int>)
   ensures !(n in s) ==> b == s + [n]
   ensures isEvenSet(s) && isEven(n) ==> isEvenSet(b)
   ensures isOddSet(s) && isOdd(n) ==> isOddSet(b)
-{ // TODO: fill in your code here and prove method correct
+{ 
+  if n in s{
+    b := s;
+  } else{
+    b := s + [n];
+    forall i, j | 0 <= i < |b| && 0 <= j < |b| && b[i] == b[j] ensures i == j {
+      if i < |s| && j < |s| {
+      } else if i == |s| && j < |s| {
+        assert b[j] == s[j];
+        assert s[j] in s;
+      } else if j == |s| && i < |s| {
+        assert b[i] == s[i];
+        assert s[i] in s;
+      }
+    }
+  }
 }
 
 /* unions two sets s1 and s2, returning a new set t */
@@ -205,6 +311,29 @@ method difference(s1: seq<int>, s2: seq<int>) returns (t: seq<int>)
   // hint: you may need to call:
   //  NotEvenANDOdd(s1[i]);
   // at the appropriate place in your code to help Dafny prove correctness
+  t := []; 
+  var i := 0;
+  while i < |s1|
+    invariant 0 <= i <= |s1|
+    invariant isSet(t)
+    invariant forall x :: x in s1[..i] && x !in s2==> x in t
+    invariant forall x :: x in t ==> x in s1[..i] && x !in s2
+    invariant isEvenSet(s1) ==> forall x :: x in t ==> isEven(x)
+    invariant isOddSet(s1) ==> forall x :: x in t ==> isOdd(x)
+    invariant isEvenSet(s1) && isOddSet(s2) ==> t == s1[..i]
+    {
+    assert s1[..i+1] == s1[..i] + [s1[i]]; 
+    if isEvenSet(s1) && isOddSet(s2) {
+      NotEvenANDOdd(s1[i]);
+    }
+
+      if s1[i] !in s2{
+        assert s1[i] !in t;
+        t:= t + [s1[i]];
+      }
+      i := i+1;
+    }
+    assert s1[..|s1|] == s1;  
 }
 
 /* multiplies each element of a set s by n, returning a new set t */
@@ -240,8 +369,28 @@ method invertParitySet(s: seq<int>) returns (t:seq<int>)
   ensures isOddSet(s) ==> isEvenSet(t)
   ensures |t| == |s|
   ensures forall i :: 0 <= i < |s| ==> t[i] == invertParity(s[i])
-{ // TODO: fill in your code here and prove method correct
-  // hint: you may need to call:
-  //  InvertParityCorrect(s[i]);
-  // at the appropriate place in your code to help Dafny prove correctness
+{ 
+  t := []; 
+  var i := 0;
+  while i < |s|
+    invariant 0 <= i <= |s|
+    invariant |t| == i
+    invariant isSet(t)
+    invariant forall k :: 0 <= k < i ==> t[k] == invertParity(s[k])
+    invariant isEvenSet(s) ==> forall y :: y in t ==> isOdd(y)
+    invariant isOddSet(s) ==> forall y :: y in t ==> isEven(y)
+    {
+      assert s[i] in s;
+      InvertParityCorrect(s[i]);
+      var v := invertParity(s[i]);
+      if v in t {
+        var k :| 0 <= k < |t| && t[k] == v;
+        assert s[k] == s[i];
+        assert false;
+      }
+      var oldT := t;
+      t := addToSet(t, v);
+      assert t == oldT + [v];
+      i := i + 1;
+    }
 }
