@@ -271,7 +271,6 @@ method addToSet(s: seq<int>, n: int) returns (b: seq<int>)
   }
 }
 
-// Liv 
 /* unions two sets s1 and s2, returning a new set t */
 method union(s1: seq<int>, s2: seq<int>) returns (t: seq<int>)
   requires isSet(s1) && isSet(s2)
