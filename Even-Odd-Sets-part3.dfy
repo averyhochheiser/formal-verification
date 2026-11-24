@@ -45,7 +45,7 @@ lemma OddModulo(n: int)
 {}
 lemma ModuloOdd(n: int)
   ensures n % 2 != 0 ==> isOdd(n)
-{ // TODO
+{ 
 	if n % 2 != 0 {
 	  var m := n / 2;
 	  assert n == 2 * m + 1;
@@ -56,13 +56,13 @@ function checkOdd(n: int): (b: bool) {
 }
 lemma checkOddCorrect(n: int)
   ensures checkOdd(n) <==> isOdd(n)
-{ // TODO
+{ 
 	OddModulo(n);
 	ModuloOdd(n);
 }
 lemma OddTimesOdd(n1: int, n2: int)
   ensures isOdd(n1) && isOdd(n2) ==> isOdd(n1 * n2)
-{ // TODO
+{ 
   if isOdd(n1) && isOdd(n2) {
     var m1 := n1 / 2;
     var m2 := n2 / 2;
@@ -79,7 +79,7 @@ lemma NotEvenANDOdd(n: int)
 
 lemma EvenOrOdd(n: int)
   ensures isEven(n) || isOdd(n)
-{ // TODO
+{ 
   if n % 2 == 0 {
 	ModuloEven(n);
   } else {
@@ -89,7 +89,7 @@ lemma EvenOrOdd(n: int)
 
 lemma EvenTimesOdd(n1: int, n2: int)
   ensures isEven(n1) && isOdd(n2) ==> isEven(n1 * n2)
-{ // TODO
+{ 
   if isEven(n1) && isOdd(n2) {
     var m1 := n1 / 2;
     var m2 := n2 / 2;
@@ -104,7 +104,7 @@ function invertParity(n: int): (m: int) {
 lemma InvertParityCorrect(n: int)
   ensures isEven(n) ==> isOdd(invertParity(n))
   ensures isOdd(n) ==> isEven(invertParity(n))
-{ // TODO
+{ 
 	if isEven(n) {
 		var m := invertParity(n);
 		ModuloOdd(m);
@@ -119,7 +119,7 @@ lemma InvertParityCorrect(n: int)
 
 /* A set is represented as a sequence with no duplicates */
 predicate isSet(s: seq<int>) {
-  forall i, j :: 0 <= i < |s| && 0 <= j < |s| && s[i] == s[j] ==> i == j // TODO
+  forall i, j :: 0 <= i < |s| && 0 <= j < |s| && s[i] == s[j] ==> i == j 
 }
 
 // hint don't use return statements. Set b instead.
@@ -164,7 +164,7 @@ method checkSet(s: seq<int>) returns (b: bool)
 
 /* An even set is a set where all elements are even */
 ghost predicate isEvenSet(s: seq<int>) {
- isSet(s) && forall x :: x in s ==> isEven(x) // TODO
+ isSet(s) && forall x :: x in s ==> isEven(x) 
 }
 
 method checkEvenSet(s: seq<int>) returns (b: bool)
@@ -203,7 +203,7 @@ method checkEvenSet(s: seq<int>) returns (b: bool)
 
 /* An odd set is a set where all elements are odd */
 ghost predicate isOddSet(s: seq<int>) {
-  isSet(s) && forall x :: x in s ==> isOdd(x) // TODO
+  isSet(s) && forall x :: x in s ==> isOdd(x) 
 }
 
 method checkOddSet(s: seq<int>) returns (b: bool)
@@ -284,6 +284,7 @@ method union(s1: seq<int>, s2: seq<int>) returns (t: seq<int>)
   t :=s1;
   var j := 0;
   while j < |s2|
+    invariant 0 <= j <= |s2|
     invariant isSet(t)
     invariant forall x :: 0 <= x < |t| ==> t[x] in s1 || t[x] in s2
     invariant forall x :: 0 <= x < |s1| ==> s1[x] in t
@@ -316,7 +317,7 @@ method intersection(s1: seq<int>, s2: seq<int>) returns (t: seq<int>)
     invariant 0<= i <= |s1|
     invariant isSet(t)
     invariant forall x :: (0 <= x < |t| ==> t[x] in s1 && t[x] in s2)
-    invariant forall x, y :: (0 <= x < |s1| && 0 <= y < |s2| && s1[x] == s2[y]) ==> s1[x] in t
+    invariant forall x, y :: (0 <= x < i && 0 <= y < |s2| && s1[x] == s2[y]) ==> s1[x] in t
     invariant isEvenSet(s1) ==> isEvenSet(t)
     invariant isOddSet(s1) ==> isOddSet(t)
     invariant isEvenSet(s1) && isOddSet(s2) ==> |t| == 0
@@ -345,11 +346,8 @@ method difference(s1: seq<int>, s2: seq<int>) returns (t: seq<int>)
   ensures isEvenSet(s1) ==> isEvenSet(t)
   ensures isOddSet(s1) ==> isOddSet(t)
   ensures isEvenSet(s1) && isOddSet(s2) ==> t == s1 // hint: don't use addToSet in your code -- use t + [s1[i]] instead
-{ // TODO: fill in your code here and prove method correct
-  // hint: you may need to call:
-  //  NotEvenANDOdd(s1[i]);
-  // at the appropriate place in your code to help Dafny prove correctness
-  t := []; 
+{
+  t := [];
   var i := 0;
   while i < |s1|
     invariant 0 <= i <= |s1|
@@ -387,6 +385,7 @@ method setScale(s: seq<int>, n: int) returns (t: seq<int>)
   t:=[];
   var i := 0;
   while i < |s|
+    invariant 0 <= i <= |s|
     invariant isSet(t)
     invariant forall x :: 0<= x< |t| ==> exists j :: 0 <= j < i && t[x] == s[j] * n
     invariant forall x :: 0 <= x < i ==> s[x] * n in t
@@ -409,7 +408,12 @@ method setScale(s: seq<int>, n: int) returns (t: seq<int>)
 }
 
 
-method setProduct(s1: seq<int>, s2: seq<int>) returns (t: seq<int>)
+lemma AppendKeepsSet(t: seq<int>, x: int)
+  requires isSet(t) && x !in t
+  ensures isSet(t + [x])
+{}
+
+method {:isolate_assertions} setProduct(s1: seq<int>, s2: seq<int>) returns (t: seq<int>)
   requires isSet(s1) && isSet(s2)
   ensures isSet(t)
   ensures forall x :: x in t ==> exists i1, j1 :: 0<= i1 < |s1| && 0<= j1 < |s2| && x == s1[i1] * s2[j1]
@@ -419,9 +423,10 @@ method setProduct(s1: seq<int>, s2: seq<int>) returns (t: seq<int>)
 { 
   t:=[];
   var i := 0;
-  while i < |s|
+  while i < |s1|
+  invariant 0 <= i <= |s1|
   invariant isSet(t)
-  invariant forall x :: x in t ==> exists a, b :: 0 <= a < i && 0 <= b < |s2| && x == s1[a] *s2[b]
+  invariant forall k :: 0 <= k < |t| ==> exists a, b :: 0 <= a < i && 0 <= b < |s2| && t[k] == s1[a] *s2[b]
   invariant forall a, b :: 0 <= a < i && 0 <= b < |s2| ==> s1[a] * s2[b] in t
   invariant isEvenSet(s1) || isEvenSet(s2) ==> isEvenSet(t)
   invariant isOddSet(s1) && isOddSet(s2) ==> isOddSet(t)
@@ -429,7 +434,8 @@ method setProduct(s1: seq<int>, s2: seq<int>) returns (t: seq<int>)
     var j := 0;
     while j < |s2| 
       invariant 0 <= j <= |s2|
-      invariant forall x :: x in t ==> exists  a, b :: 0 <= a < i && 0 <= b < |s2| && (a < i || b < j) && x == s1[a] * s2[b]
+      invariant isSet(t)
+      invariant forall k :: 0 <= k < |t| ==> exists a, b :: 0 <= a <= i && 0 <= b < |s2| && (a < i || b < j) && t[k] == s1[a] * s2[b]
       invariant forall a, b :: 0 <= a < i && 0 <= b < |s2| ==> s1[a] *s2[b] in t
       invariant forall b :: 0 <= b < j ==> s1[i] * s2[b] in t
       invariant isEvenSet(s1) || isEvenSet(s2) ==> isEvenSet(t)
@@ -444,6 +450,7 @@ method setProduct(s1: seq<int>, s2: seq<int>) returns (t: seq<int>)
       }
 
       if s1[i] * s2[j] !in t{
+        AppendKeepsSet(t, s1[i] * s2[j]);
         t := t + [s1[i] *s2[j]];
         assert t[|t| -1] == s1[i] *s2[j];
       }
@@ -452,7 +459,13 @@ method setProduct(s1: seq<int>, s2: seq<int>) returns (t: seq<int>)
     i := i +1;
   }
 
-  // put back to indices 
+  forall x | x in t
+    ensures exists i1, j1 :: 0 <= i1 < |s1| && 0 <= j1 < |s2| && x == s1[i1] * s2[j1]
+  {
+    var k :| 0 <= k < |t| && t[k] == x;
+  }
+
+  forall v1, v2 | v1 in s1 && v2 in s2 ensures v1 * v2 in t
   {
     var p :| 0 <= p < |s1| && s1[p] == v1;
     var q :| 0 <= q < |s2| && s2[q] == v2;
